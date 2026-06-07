@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import BottomNav from '../components/BottomNav'
+import WeatherAlert from '../components/WeatherAlert'
 
 type Item = {
   id: string
@@ -11,7 +13,13 @@ type Item = {
   low?: boolean
 }
 
-export default function Dashboard() {
+type Page = 'dashboard' | 'inventory' | 'reports'
+
+type Props = {
+  onNavigate: (page: Page) => void
+}
+
+export default function Dashboard({ onNavigate }: Props) {
   const [items, setItems] = useState<Item[]>([])
   const [sales, setSales] = useState(0)
   const [sold, setSold] = useState(0)
@@ -130,11 +138,7 @@ export default function Dashboard() {
       </div>
 
       {/* Alert */}
-      <div className="mx-4 mt-4 bg-[#FFF3CD] border-l-4 border-[#E8A500] rounded-xl p-3">
-        <p className="text-[#7A5500] text-sm leading-relaxed">
-          🌧️ <strong>Ulan bukas!</strong> Mag-stock ng Kopiko, Lucky Me, at Biogesic. Payday sa Biyernes — palakasin ang Bear Brand.
-        </p>
-      </div>
+      <WeatherAlert />
 
       {/* Low stock warning */}
       {items.some(i => i.low) && (
@@ -169,27 +173,7 @@ export default function Dashboard() {
           </button>
         ))}
       </div>
-
-      {/* Bottom Nav */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 flex justify-around py-3">
-        <button className="flex flex-col items-center text-[#E8301A]">
-          <span className="text-xl">🏠</span>
-          <span className="text-[10px] mt-0.5">Dashboard</span>
-        </button>
-        <button className="flex flex-col items-center text-gray-400">
-          <span className="text-xl">📊</span>
-          <span className="text-[10px] mt-0.5">Ulat</span>
-        </button>
-        <button className="flex flex-col items-center text-gray-400">
-          <span className="text-xl">📦</span>
-          <span className="text-[10px] mt-0.5">Imbentaryo</span>
-        </button>
-        <button className="flex flex-col items-center text-gray-400">
-          <span className="text-xl">⚙️</span>
-          <span className="text-[10px] mt-0.5">Settings</span>
-        </button>
-      </div>
-
+      <BottomNav current="dashboard" onNavigate={onNavigate} />
     </div>
   )
 }
