@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { signIn, signUp } from '../lib/auth'
 
-// This component needs to tell App.tsx when login succeeds
-// so App.tsx can switch to the Dashboard
+// tells App.tsx when login succeeds
+// so that App.tsx can switch to the Dashboard
 type Props = {
   onLogin: () => void
 }
@@ -14,6 +14,7 @@ export default function Login({ onLogin }: Props) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  const [remember, setRemember] = useState(true)
 
   async function handleSubmit() {
     // Basic validation before hitting the API
@@ -31,7 +32,7 @@ export default function Login({ onLogin }: Props) {
         setSuccess('Account nagawa na! Mag-login na.')
         setIsSignUp(false)
       } else {
-        await signIn(email, password)
+        await signIn(email, password, remember)
         // Tell App.tsx login succeeded → switch to dashboard
         onLogin()
       }
@@ -73,6 +74,7 @@ export default function Login({ onLogin }: Props) {
 
         {/* Toggle tabs */}
         <div className="flex bg-[#F0F4F0] rounded-2xl p-1 mb-5">
+          
           <button
             onClick={() => { setIsSignUp(false); setError(''); setSuccess('') }}
             className={`flex-1 py-2 rounded-xl text-sm font-bold transition-all ${
@@ -148,6 +150,27 @@ export default function Login({ onLogin }: Props) {
           </div>
         )}
 
+        {/* Remember Me */}
+        {!isSignUp && (
+          <div className="flex items-center gap-2 mt-2">
+            <button
+              onClick={() => setRemember(!remember)}
+              className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all shrink-0 ${
+                remember
+                  ? 'bg-[#0D3B2E] border-[#0D3B2E]'
+                  : 'bg-white border-gray-200'
+              }`}
+            >
+              {remember && (
+                <span className="text-white text-[10px] font-bold">✓</span>
+              )}
+            </button>
+            <span className="text-xs text-gray-400 font-medium">
+              Tandaan ako sa device na ito
+            </span>
+          </div>
+        )}
+
         {/* Submit button */}
         <button
           onClick={handleSubmit}
@@ -165,7 +188,7 @@ export default function Login({ onLogin }: Props) {
       </div>
 
       {/* Footer */}
-      <p className="text-gray-300 text-xs mt-6 text-center font-medium">
+      <p className="text--black text-xs mt-6 text-center font-medium">
         TindahanLink · Para sa mga negosyante ng Pilipinas 🇵🇭
       </p>
 
