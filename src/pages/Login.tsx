@@ -251,7 +251,7 @@ export default function Login({ onLogin }: Props) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.4 }}
-        className="text-gray-300 text-xs mt-6 text-center font-medium"
+        className="text-gray-900 text-xs mt-6 text-center font-medium"
       >
         TindahanLink · Para sa mga negosyante ng Pilipinas 🇵🇭
       </motion.p>
