@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import BottomNav from '../components/BottomNav'
 import type { Page } from '../types'
+import { useProfile } from '../context/ProfileContext'
 
 type Item = {
   id: string
@@ -36,6 +37,7 @@ export default function Inventory({ onNavigate }: Props) {
   const [editItem, setEditItem] = useState<Item | null>(null)
   const [form, setForm] = useState<FormData>(EMPTY_FORM)
   const [saving, setSaving] = useState(false)
+  const { profile } = useProfile()
 
   useEffect(() => { fetchItems() }, [])
 
@@ -103,7 +105,7 @@ export default function Inventory({ onNavigate }: Props) {
       {/* Header */}
       <div className="bg-[#0D3B2E] px-5 pt-12 pb-6">
         <p className="text-white/50 text-[10px] font-semibold uppercase tracking-widest mb-1">
-          Aling Nena's Store
+          {profile.location}
         </p>
         <h1 className="text-white text-2xl font-bold tracking-tight">Imbentaryo</h1>
         <p className="text-white/40 text-xs mt-1">{items.length} produkto</p>

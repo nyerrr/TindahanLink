@@ -7,6 +7,7 @@ import Inventory from './pages/Inventory'
 import Reports from './pages/Reports'
 import Settings from './pages/Settings'
 import type { Page } from './types'
+import { ProfileProvider } from './context/ProfileContext'
 
 export default function App() {
   const [page, setPage] = useState<Page>('dashboard')
@@ -59,19 +60,22 @@ export default function App() {
     return <Login onLogin={() => setPage('dashboard')} />
   }
 
-  // Has session = logged in = show the app
+ // ProfileProvider wraps everything so all pages
+  // can access store name without prop drilling
   return (
-    <div>
-      {page === 'dashboard' && <Dashboard onNavigate={setPage} />}
-      {page === 'inventory' && <Inventory onNavigate={setPage} />}
-      {page === 'reports' && <Reports onNavigate={setPage} />}
-      {page === 'settings' && (
-        <Settings
-          onNavigate={setPage}
-          onLogout={() => setPage('dashboard')}
-          userEmail={userEmail}
-        />
-      )}
-    </div>
+    <ProfileProvider>
+      <div>
+        {page === 'dashboard' && <Dashboard onNavigate={setPage} />}
+        {page === 'inventory' && <Inventory onNavigate={setPage} />}
+        {page === 'reports' && <Reports onNavigate={setPage} />}
+        {page === 'settings' && (
+          <Settings
+            onNavigate={setPage}
+            onLogout={() => setPage('dashboard')}
+            userEmail={userEmail}
+          />
+        )}
+      </div>
+    </ProfileProvider>
   )
 }

@@ -1,5 +1,7 @@
 import { useState } from 'react'
+import { motion } from 'framer-motion'
 import { signOut } from '../lib/auth'
+import { useProfile } from '../context/ProfileContext'
 import BottomNav from '../components/BottomNav'
 import type { Page } from '../types'
 
@@ -10,7 +12,15 @@ type Props = {
 }
 
 export default function Settings({ onNavigate, onLogout, userEmail }: Props) {
+  const { profile, updateProfile } = useProfile()
   const [loading, setLoading] = useState(false)
+  const [editing, setEditing] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [form, setForm] = useState({
+    store_name: profile.store_name,
+    location: profile.location
+  })
+  const [success, setSuccess] = useState(false)
 
   async function handleLogout() {
     const confirm = window.confirm('Sigurado ka bang mag-lo-logout?')
@@ -20,13 +30,23 @@ export default function Settings({ onNavigate, onLogout, userEmail }: Props) {
     onLogout()
   }
 
+  async function handleSave() {
+    if (!form.store_name.trim()) return alert('Lagyan ng pangalan ang tindahan!')
+    setSaving(true)
+    await updateProfile(form)
+    setSaving(false)
+    setEditing(false)
+    setSuccess(true)
+    setTimeout(() => setSuccess(false), 3000)
+  }
+
   return (
     <div className="min-h-screen bg-[#F0F4F0] pb-24">
 
       {/* Header */}
       <div className="bg-[#0D3B2E] px-5 pt-12 pb-6">
         <p className="text-white/50 text-[10px] font-semibold uppercase tracking-widest mb-1">
-          Aling Nena's Store
+          {profile.store_name}
         </p>
         <h1 className="text-white text-2xl font-bold tracking-tight">Settings</h1>
         <p className="text-white/40 text-xs mt-1">I-manage ang inyong account</p>
@@ -38,14 +58,89 @@ export default function Settings({ onNavigate, onLogout, userEmail }: Props) {
 
       <div className="px-4 pt-4 flex flex-col gap-3">
 
+        {/* Success message */}
+        {success && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-green-50 border border-green-100 rounded-2xl p-3"
+          >
+            <p className="text-green-600 text-xs font-semibold">
+              ✅ Na-save ang inyong tindahan!
+            </p>
+          </motion.div>
+        )}
+
+        {/* Store Info Card */}
+        <div className="bg-white rounded-2xl border border-[#E8EDE8] p-4">
+          <div className="flex justify-between items-center mb-3">
+            <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-widest">
+              Impormasyon ng Tindahan
+            </p>
+            <button
+              onClick={() => {
+                setEditing(!editing)
+                setForm({ store_name: profile.store_name, location: profile.location })
+              }}
+              className="text-xs font-bold text-[#1B8B5A]"
+            >
+              {editing ? 'Kanselahin' : 'I-edit'}
+            </button>
+          </div>
+
+          {editing ? (
+            <div className="flex flex-col gap-3">
+              <div>
+                <label className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider mb-1 block">
+                  Pangalan ng Tindahan
+                </label>
+                <input
+                  value={form.store_name}
+                  onChange={e => setForm({ ...form, store_name: e.target.value })}
+                  placeholder="hal. Aling Nena's Store"
+                  className="w-full border border-gray-100 bg-[#F0F4F0] rounded-xl px-4 py-3 text-sm font-medium text-[#0D3B2E] focus:outline-none focus:border-[#0D3B2E]"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider mb-1 block">
+                  Lokasyon
+                </label>
+                <input
+                  value={form.location}
+                  onChange={e => setForm({ ...form, location: e.target.value })}
+                  placeholder="hal. Caloocan, Metro Manila"
+                  className="w-full border border-gray-100 bg-[#F0F4F0] rounded-xl px-4 py-3 text-sm font-medium text-[#0D3B2E] focus:outline-none focus:border-[#0D3B2E]"
+                />
+              </div>
+              <button
+                onClick={handleSave}
+                disabled={saving}
+                className="w-full bg-[#0D3B2E] text-white rounded-xl py-3 text-sm font-bold disabled:opacity-60"
+              >
+                {saving ? 'Sine-save...' : 'I-save ang Tindahan'}
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-3">
+              <div className="w-14 h-14 bg-[#0D3B2E] rounded-2xl flex items-center justify-center shrink-0">
+                <span className="text-2xl">🏪</span>
+              </div>
+              <div>
+                <p className="font-bold text-sm text-[#0D3B2E]">{profile.store_name}</p>
+                <p className="text-xs text-gray-400 mt-0.5">📍 {profile.location}</p>
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Account Card */}
         <div className="bg-white rounded-2xl border border-[#E8EDE8] p-4">
           <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-widest mb-3">
             Account
           </p>
           <div className="flex items-center gap-3">
-            <div className="w-14 h-14 bg-[#0D3B2E] rounded-2xl flex items-center justify-center shrink-0">
-              <span className="text-2xl">👩</span>
+            <div className="w-10 h-10 bg-[#F0F4F0] rounded-xl flex items-center justify-center shrink-0">
+              <span className="text-lg">👤</span>
             </div>
             <div>
               <p className="font-bold text-sm text-[#0D3B2E]">Store Owner</p>
@@ -79,25 +174,6 @@ export default function Settings({ onNavigate, onLogout, userEmail }: Props) {
               </span>
             </div>
           </div>
-        </div>
-
-        {/* About Card */}
-        <div className="bg-white rounded-2xl border border-[#E8EDE8] p-4">
-          <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-widest mb-3">
-            Tungkol sa App
-          </p>
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 bg-[#0D3B2E] rounded-xl flex items-center justify-center">
-              <span className="text-lg">🏪</span>
-            </div>
-            <div>
-              <p className="font-bold text-sm text-[#0D3B2E]">TindahanLink</p>
-              <p className="text-xs text-gray-400">Para sa mga sari-sari store sa Pilipinas</p>
-            </div>
-          </div>
-          <p className="text-xs text-gray-400 leading-relaxed">
-            Ang TindahanLink ay isang modernong inventory at sales tracker na dinisenyo para sa mga may-ari ng sari-sari store. I-record ang benta, subaybayan ang stock, at tingnan ang ulat ng negosyo — lahat sa isang app.
-          </p>
         </div>
 
         {/* Logout */}

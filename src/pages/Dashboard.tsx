@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase'
 import BottomNav from '../components/BottomNav'
 import WeatherAlert from '../components/WeatherAlert'
 import type { Page } from '../types'
-
+import { useProfile } from '../context/ProfileContext'
 
 type Item = {
   id: string
@@ -37,6 +37,7 @@ export default function Dashboard({ onNavigate }: Props) {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [activeCategory, setActiveCategory] = useState('Lahat')
+  const { profile } = useProfile()
 
   useEffect(() => {
     fetchItems()
@@ -125,8 +126,8 @@ export default function Dashboard({ onNavigate }: Props) {
           </button>
         </div>
 
-        <h1 className="text-white text-2xl font-bold tracking-tight">Aling Nena's</h1>
-        <p className="text-white/40 text-xs mt-0.5">{today} · Caloocan</p>
+        <h1 className="text-white text-2xl font-bold tracking-tight">{profile.store_name}</h1>
+        <p className="text-white/40 text-xs mt-0.5">{today} · {profile.location}</p> 
 
         <div className="flex gap-3 mt-4">
           <div className="flex-1 bg-white/10 border border-white/10 rounded-2xl p-3">
