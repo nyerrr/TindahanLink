@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import BottomNav from '../components/BottomNav'
 import WeatherAlert from '../components/WeatherAlert'
+import type { Page } from '../types'
+
 
 type Item = {
   id: string
@@ -14,7 +16,6 @@ type Item = {
   low?: boolean
 }
 
-type Page = 'dashboard' | 'inventory' | 'reports' | 'settings'
 type Props = { onNavigate: (page: Page) => void }
 
 const CATEGORIES = ['Lahat', 'Inumin', 'Pagkain', 'Gamot', 'Hygiene', 'Meryenda', 'Iba pa']

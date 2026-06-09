@@ -6,8 +6,7 @@ import Dashboard from './pages/Dashboard'
 import Inventory from './pages/Inventory'
 import Reports from './pages/Reports'
 import Settings from './pages/Settings'
-
-type Page = 'dashboard' | 'inventory' | 'reports' | 'settings'
+import type { Page } from './types'
 
 export default function App() {
   const [page, setPage] = useState<Page>('dashboard')

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import BottomNav from '../components/BottomNav'
+import type { Page } from '../types'
 
 type Item = {
   id: string
@@ -12,8 +13,6 @@ type Item = {
   category: string
   low?: boolean
 }
-
-type Page = 'dashboard' | 'inventory' | 'reports' | 'settings'
 
 type Props = {
   onNavigate: (page: Page) => void

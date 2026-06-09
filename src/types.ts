@@ -1,0 +1,1 @@
+export type Page = 'dashboard' | 'inventory' | 'reports' | 'settings'

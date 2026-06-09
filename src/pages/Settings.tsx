@@ -1,8 +1,7 @@
 import { useState } from 'react'
 import { signOut } from '../lib/auth'
 import BottomNav from '../components/BottomNav'
-
-type Page = 'dashboard' | 'inventory' | 'reports' | 'settings'
+import type { Page } from '../types'
 
 type Props = {
   onNavigate: (page: Page) => void

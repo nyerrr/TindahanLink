@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 import BottomNav from '../components/BottomNav'
+import type { Page } from '../types'
 
-type Page = 'dashboard' | 'inventory' | 'reports' | 'settings'
 type Props = { onNavigate: (page: Page) => void }
 type DailySale = { date: string; total: number }
 type ItemSale = { name: string; quantity: number }
