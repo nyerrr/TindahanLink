@@ -112,15 +112,15 @@ export default function Dashboard({ onNavigate }: Props) {
     <div className="min-h-screen bg-[#F0F4F0] pb-24">
 
       {/* Header */}
-      <div className="bg-[#0D3B2E] px-5 pt-12 pb-6">
-        <div className="flex justify-between items-center mb-4">
+      <div className="bg-[#0D3B2E] px-5 pt-4 pb-6">
+        <div className="border-l-4 border-[#819385] flex p-3 justify-between items-center mb-4 bg-[#2e7b65] rounded-full px-8 pb-1 pt-1">
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-green-400" />
-            <span className="text-white/50 text-[10px] font-semibold uppercase tracking-widest">
+            <span className="text-black text-[11px] font-semibold uppercase tracking-widest">
               Open for business
             </span>
           </div>
-          <button className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white/60 text-sm">
+          <button className="w-8 h-8 rounded-full bg-[#975c0a] flex items-center justify-center text-white/60 text-sm">
             🔔
           </button>
         </div>
