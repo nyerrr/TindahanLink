@@ -87,7 +87,12 @@ export default function Inventory({ onNavigate }: Props) {
 
   async function handleDelete(item: Item) {
     if (!window.confirm(`I-delete ang ${item.name}?`)) return
-    await supabase.from('items').delete().eq('id', item.id)
+    const { error } = await supabase.from('items').delete().eq('id', item.id)
+    if (error) {
+      console.error('Delete failed:', error)
+      alert('Error: ' + error.message)
+      return
+    }
     await fetchItems()
   }
 
@@ -98,6 +103,8 @@ export default function Inventory({ onNavigate }: Props) {
       </div>
     )
   }
+
+  
 
   return (
     <div className="min-h-screen bg-[#F0F4F0] pb-24">
