@@ -402,7 +402,7 @@ export default function Dashboard({ onNavigate }: Props) {
               exit={{ y: '100%' }}
               transition={{ type: 'spring', stiffness: 300, damping: 30 }}
               className="bg-white w-full rounded-t-3xl p-6 pb-10"
-              onClick={e => e.stopPropagation()}
+              onClick={(e: React.MouseEvent) => e.stopPropagation()}
             >
               {/* Handle bar */}
               <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-5" />
