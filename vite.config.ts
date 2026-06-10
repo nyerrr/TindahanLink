@@ -9,25 +9,34 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
+      // Why includeAssets? So the service worker caches our icons
+      includeAssets: ['favicon.ico', 'icon-192.png', 'icon-512.png'],
       manifest: {
         name: 'TindahanLink',
         short_name: 'TindahanLink',
         description: 'Inventory at benta tracker para sa sari-sari store',
-        theme_color: '#E8301A',
-        background_color: '#F5F0E8',
+        theme_color: '#0D3B2E',
+        background_color: '#F0F4F0',
         display: 'standalone',
         orientation: 'portrait',
         start_url: '/',
         icons: [
+          { src: '/icon-192.png', sizes: '192x192', type: 'image/png' },
+          { src: '/icon-512.png', sizes: '512x512', type: 'image/png' }
+        ]
+      },
+      // Why workbox? It handles the service worker caching strategy
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+        runtimeCaching: [
           {
-            src: '/icon-192.png',
-            sizes: '192x192',
-            type: 'image/png'
-          },
-          {
-            src: '/icon-512.png',
-            sizes: '512x512',
-            type: 'image/png'
+            // Cache Supabase API calls
+            urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'supabase-cache',
+              expiration: { maxEntries: 50, maxAgeSeconds: 300 }
+            }
           }
         ]
       }

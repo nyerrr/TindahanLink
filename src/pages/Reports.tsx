@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 import BottomNav from '../components/BottomNav'
+import type { Page } from '../types'
+import { useProfile } from '../context/ProfileContext'
 
-type Page = 'dashboard' | 'inventory' | 'reports' | 'settings'
 type Props = { onNavigate: (page: Page) => void }
 type DailySale = { date: string; total: number }
 type ItemSale = { name: string; quantity: number }
@@ -16,6 +17,7 @@ export default function Reports({ onNavigate }: Props) {
   const [totalToday, setTotalToday] = useState(0)
   const [totalWeek, setTotalWeek] = useState(0)
   const [loading, setLoading] = useState(true)
+  const { profile } = useProfile()
 
   useEffect(() => { fetchReports() }, [])
 
@@ -71,7 +73,9 @@ export default function Reports({ onNavigate }: Props) {
     <div className="min-h-screen bg-[#F0F4F0] pb-24">
 
       <div className="bg-[#0D3B2E] px-5 pt-12 pb-6">
-        <p className="text-white/50 text-[10px] font-semibold uppercase tracking-widest mb-1">Aling Nena's Store</p>
+        <p className="text-white/50 text-[10px] font-semibold uppercase tracking-widest mb-1">
+          {profile.store_name}
+        </p>
         <h1 className="text-white text-2xl font-bold tracking-tight">Ulat ng Benta</h1>
         <p className="text-white/40 text-xs mt-1">Nakaraang 7 araw</p>
         <div className="flex gap-3 mt-4">

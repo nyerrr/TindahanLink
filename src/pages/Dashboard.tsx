@@ -2,6 +2,12 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import BottomNav from '../components/BottomNav'
 import WeatherAlert from '../components/WeatherAlert'
+import type { Page } from '../types'
+import { useProfile } from '../context/ProfileContext'
+import { motion, AnimatePresence } from 'framer-motion'
+import NotificationPanel from '../components/NotificationPanel'
+import { buildNotifications } from '../lib/notifications'
+import { checkAndNotifyLowStock } from '../lib/pushNotifications'
 
 type Item = {
   id: string
@@ -14,7 +20,6 @@ type Item = {
   low?: boolean
 }
 
-type Page = 'dashboard' | 'inventory' | 'reports' | 'settings'
 type Props = { onNavigate: (page: Page) => void }
 
 const CATEGORIES = ['Lahat', 'Inumin', 'Pagkain', 'Gamot', 'Hygiene', 'Meryenda', 'Iba pa']
@@ -30,12 +35,18 @@ const CATEGORY_EMOJI: Record<string, string> = {
 }
 
 export default function Dashboard({ onNavigate }: Props) {
+  const [notifOpen, setNotifOpen] = useState(false)
   const [items, setItems] = useState<Item[]>([])
   const [sales, setSales] = useState(0)
   const [sold, setSold] = useState(0)
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [activeCategory, setActiveCategory] = useState('Lahat')
+  const [sellingItem, setSellingItem] = useState<Item | null>(null)
+  const [sellQty, setSellQty] = useState('1')
+  const [sellLoading, setSellLoading] = useState(false)
+  const [visibleCount, setVisibleCount] = useState(6)
+  const { profile } = useProfile()
 
   useEffect(() => {
     fetchItems()
@@ -48,11 +59,17 @@ export default function Dashboard({ onNavigate }: Props) {
       .select('*')
       .order('name')
     if (error) return console.error(error)
-    setItems(data.map(item => ({
+
+    const mappedItems = data.map(item => ({
       ...item,
       low: item.stock <= item.low_threshold
-    })))
+    }))
+    setItems(mappedItems)
     setLoading(false)
+
+    // Check stock levels and notify if needed
+    // Why after setItems? So UI updates first, then notification
+    await checkAndNotifyLowStock(mappedItems)
   }
 
   async function fetchTodaySales() {
@@ -67,17 +84,58 @@ export default function Dashboard({ onNavigate }: Props) {
     setSold(data.reduce((sum, s) => sum + s.quantity, 0))
   }
 
-  async function handleTap(item: Item) {
+  // Step 1: Open the quantity modal
+  function openSellModal(item: Item) {
     if (item.stock <= 0) return
-    await supabase.from('sales').insert({ item_id: item.id, quantity: 1, total: item.price })
-    await supabase.from('items').update({ stock: item.stock - 1 }).eq('id', item.id)
-    setItems(items => items.map(i =>
-      i.id === item.id
-        ? { ...i, stock: i.stock - 1, low: i.stock - 1 <= i.low_threshold }
+    setSellingItem(item)
+    setSellQty('1') // default to 1
+  }
+
+  // Step 2: Actually record the sale
+  async function confirmSell() {
+    if (!sellingItem) return
+
+    const qty = Number(sellQty)
+
+    // Validate quantity
+    if (!qty || qty <= 0) return alert('Maglagay ng tamang bilang!')
+    if (qty > sellingItem.stock) return alert(`${sellingItem.name} ay ${sellingItem.stock} na lang natitira!`)
+
+    setSellLoading(true)
+
+    const total = qty * sellingItem.price
+
+    // Record the sale with the correct quantity and total
+    await supabase.from('sales').insert({
+      item_id: sellingItem.id,
+      quantity: qty,
+      total: total
+    })
+
+    // Update stock — subtract the full quantity at once
+    await supabase.from('items').update({
+      stock: sellingItem.stock - qty
+    }).eq('id', sellingItem.id)
+
+    // Update local state immediately — no need to refetch
+    const newStock = sellingItem.stock - qty
+    const updatedItems = items.map(i =>
+      i.id === sellingItem.id
+        ? { ...i, stock: newStock, low: newStock <= i.low_threshold }
         : i
-    ))
-    setSales(s => s + item.price)
-    setSold(s => s + 1)
+    )
+    setItems(updatedItems)
+
+    // Notify if stock just went low
+    await checkAndNotifyLowStock(updatedItems)
+
+    // Update the sales counters
+    setSales(s => s + total)
+    setSold(s => s + qty)
+
+    // Close modal
+    setSellingItem(null)
+    setSellLoading(false)
   }
 
   // Filter by search + category
@@ -86,6 +144,17 @@ export default function Dashboard({ onNavigate }: Props) {
     const matchesCategory = activeCategory === 'Lahat' || item.category === activeCategory
     return matchesSearch && matchesCategory
   })
+
+  // Pagination
+  const totalFiltered = filteredItems.length
+  const visibleItems = filteredItems.slice(0, visibleCount)
+  const hasMore = visibleCount < totalFiltered
+
+  // Notifications
+  const notifications = buildNotifications(items)
+  const urgentCount = notifications.filter(n => n.urgent).length
+
+  
 
   // Only show categories that have items
   const usedCategories = CATEGORIES.filter(cat =>
@@ -111,21 +180,35 @@ export default function Dashboard({ onNavigate }: Props) {
     <div className="min-h-screen bg-[#F0F4F0] pb-24">
 
       {/* Header */}
-      <div className="bg-[#0D3B2E] px-5 pt-12 pb-6">
-        <div className="flex justify-between items-center mb-4">
+      <div className="bg-[#0D3B2E] px-5 pt-4 pb-6">
+        <div className="border-l-4 border-[#819385] flex p-3 justify-between items-center mb-4 bg-[#2e7b65] rounded-full px-8 pb-1 pt-1">
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-green-400" />
-            <span className="text-white/50 text-[10px] font-semibold uppercase tracking-widest">
+            <span className="text-black text-[11px] font-semibold uppercase tracking-widest">
               Open for business
             </span>
           </div>
-          <button className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white/60 text-sm">
+          {/* Bell button with badge */}
+          {/* Why relative + absolute? To position the badge on top of the button */}
+          <button
+            onClick={() => setNotifOpen(true)}
+            className="relative w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white/60 text-sm"
+          >
             🔔
+            {urgentCount > 0 && (
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center"
+              >
+                <span className="text-white text-[8px] font-bold">{urgentCount}</span>
+              </motion.div>
+            )}
           </button>
         </div>
 
-        <h1 className="text-white text-2xl font-bold tracking-tight">Aling Nena's</h1>
-        <p className="text-white/40 text-xs mt-0.5">{today} · Caloocan</p>
+        <h1 className="text-white text-2xl font-bold tracking-tight">{profile.store_name}</h1>
+        <p className="text-white/40 text-xs mt-0.5">{today} · {profile.location}</p> 
 
         <div className="flex gap-3 mt-4">
           <div className="flex-1 bg-white/10 border border-white/10 rounded-2xl p-3">
@@ -165,7 +248,10 @@ export default function Dashboard({ onNavigate }: Props) {
           <input
             type="text"
             value={search}
-            onChange={e => setSearch(e.target.value)}
+            onChange={e => {
+            setSearch(e.target.value)
+            setVisibleCount(6)
+          }}
             placeholder="Hanapin ang produkto..."
             className="w-full bg-white border border-[#E8EDE8] rounded-2xl py-3 pl-10 pr-4 text-sm font-medium text-[#0D3B2E] placeholder:text-gray-300 focus:outline-none focus:border-[#0D3B2E] transition-colors"
           />
@@ -187,7 +273,10 @@ export default function Dashboard({ onNavigate }: Props) {
           {usedCategories.map(cat => (
             <button
               key={cat}
-              onClick={() => setActiveCategory(cat)}
+              onClick={() => {
+                setActiveCategory(cat)
+                setVisibleCount(6)
+              }}
               className={`shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${
                 activeCategory === cat
                   ? 'bg-[#0D3B2E] text-white'
@@ -211,8 +300,8 @@ export default function Dashboard({ onNavigate }: Props) {
         <div className="flex justify-between items-center mt-4 mb-3">
           <p className="text-[#0D3B2E] text-sm font-bold tracking-tight">
             {activeCategory === 'Lahat' ? 'Lahat ng Produkto' : activeCategory}
-            <span className="text-gray-300 font-medium ml-1.5">
-              ({filteredItems.length})
+            <span className="text-gray-600 font-medium ml-1.5">
+              ({visibleCount < totalFiltered ? `${visibleCount} sa ${totalFiltered}` : totalFiltered})
             </span>
           </p>
           <button
@@ -243,10 +332,10 @@ export default function Dashboard({ onNavigate }: Props) {
                 Tingnan lahat
               </button>
             </div>
-          ) : filteredItems.map(item => (
+          ) : visibleItems.map(item => (
             <button
               key={item.id}
-              onClick={() => handleTap(item)}
+              onClick={() => openSellModal(item)}
               disabled={item.stock <= 0}
               className={`bg-white rounded-2xl border border-[#E8EDE8] p-3 flex flex-col items-center relative active:scale-95 transition-all ${
                 item.stock <= 0 ? 'opacity-40' : ''
@@ -271,9 +360,133 @@ export default function Dashboard({ onNavigate }: Props) {
           ))}
         </div>
 
-      </div>
+        {/* Show more button */}
+        <AnimatePresence>
+          {hasMore && (
+            <motion.button
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 10 }}
+              onClick={() => setVisibleCount(c => c + 6)}
+              className="w-full mt-3 bg-white border border-[#E8EDE8] rounded-2xl py-3.5 text-sm font-bold text-[#0D3B2E] active:scale-95 transition-transform"
+            >
+              Tingnan pa ({totalFiltered - visibleCount} pa)
+            </motion.button>
+          )}
+        </AnimatePresence>
 
+        {!hasMore && totalFiltered > 6 && (
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-center text-xs text-black font-medium mt-3 pb-2"
+          >
+            Lahat ng {totalFiltered} produkto ay nakita na ✅
+          </motion.p>
+        )}
+
+      </div>
+      {/* Sell Quantity Modal */}
+      <AnimatePresence>
+        {sellingItem && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/40 flex items-end z-50"
+            onClick={() => setSellingItem(null)}
+          >
+            <motion.div
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+              className="bg-white w-full rounded-t-3xl p-6 pb-10"
+              onClick={e => e.stopPropagation()}
+            >
+              {/* Handle bar */}
+              <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-5" />
+
+              {/* Item info */}
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-14 h-14 bg-[#F0F4F0] rounded-2xl flex items-center justify-center text-3xl shrink-0">
+                  {sellingItem.emoji}
+                </div>
+                <div>
+                  <p className="font-bold text-[#0D3B2E]">{sellingItem.name}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    ₱{sellingItem.price} bawat isa · {sellingItem.stock} natitira
+                  </p>
+                </div>
+              </div>
+
+              {/* Quantity selector */}
+              <div className="mb-2">
+                <label className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider mb-3 block">
+                  Ilang piraso ang nabenta?
+                </label>
+
+                {/* + and - buttons with input in the middle */}
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setSellQty(q => String(Math.max(1, Number(q) - 1)))}
+                    className="w-12 h-12 flex items-center justify-center text-xl font-bold text-[#0D3B2E] active:scale-95 transition-transform"
+                  >
+                    −
+                  </button>
+                  <input
+                    inputMode="numeric"
+                    value={sellQty}
+                    onChange={e => setSellQty(e.target.value)}
+                    className="flex-1 text-center text-2xl font-bold text-[#0D3B2E] bg-[#F0F4F0] rounded-2xl py-3 focus:outline-none focus:border-[#0D3B2E] border border-transparent"
+                  />
+                  <button
+                    onClick={() => setSellQty(q => String(Math.min(sellingItem.stock, Number(q) + 1)))}
+                    className="w-12 h-12  flex items-center justify-center text-xl font-bold text-[#0D3B2E] active:scale-95 transition-transform"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+
+              {/* Total preview */}
+              {/* Why show this? So Aling Nena can verify before confirming */}
+              <div className="p-3 mb-5 flex justify-between items-center">
+                <span className="text-sm text-gray-500 font-medium">Kabuuang halaga</span>
+                <span className="text-lg font-bold text-[#0D3B2E]">
+                  ₱{(Number(sellQty) * sellingItem.price).toLocaleString()}
+                </span>
+              </div>
+
+              {/* Action buttons */}
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setSellingItem(null)}
+                  className="flex-1 bg-[#F0F4F0] rounded-2xl py-3.5 text-sm font-semibold text-gray-500"
+                >
+                  Kanselahin
+                </button>
+                <motion.button
+                  whileTap={{ scale: 0.97 }}
+                  onClick={confirmSell}
+                  disabled={sellLoading}
+                  className="flex-1 bg-[#0D3B2E] text-white rounded-2xl py-3.5 text-sm font-bold disabled:opacity-60"
+                >
+                  {sellLoading ? 'Nagse-save...' : 'I-record ang Benta ✓'}
+                </motion.button>
+              </div>
+
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
       <BottomNav current="dashboard" onNavigate={onNavigate} />
+      <NotificationPanel
+        notifications={notifications}
+        isOpen={notifOpen}
+        onClose={() => setNotifOpen(false)}
+        onNavigate={onNavigate}
+      />
     </div>
   )
 }
