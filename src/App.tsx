@@ -8,6 +8,7 @@ import Reports from './pages/Reports'
 import Settings from './pages/Settings'
 import type { Page } from './types'
 import { ProfileProvider } from './context/ProfileContext'
+import UtangPage from './pages/Utang'
 
 export default function App() {
   const [page, setPage] = useState<Page>('dashboard')
@@ -66,6 +67,7 @@ export default function App() {
     <ProfileProvider>
       <div>
         {page === 'dashboard' && <Dashboard onNavigate={setPage} />}
+        {page === 'utang' && <UtangPage onNavigate={setPage} />}
         {page === 'inventory' && <Inventory onNavigate={setPage} />}
         {page === 'reports' && <Reports onNavigate={setPage} />}
         {page === 'settings' && (

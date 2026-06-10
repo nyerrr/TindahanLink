@@ -139,7 +139,7 @@ export default function Settings({ onNavigate, onLogout, userEmail }: Props) {
             Account
           </p>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-[#F0F4F0] rounded-xl flex items-center justify-center shrink-0">
+            <div className="w-10 h-10 bg-[#F0F4F0] rounded-xl flex items-center justify-center  shrink-0">
               <span className="text-lg">👤</span>
             </div>
             <div>

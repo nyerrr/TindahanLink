@@ -8,8 +8,9 @@ type Props = {
 export default function BottomNav({ current, onNavigate }: Props) {
   const items = [
     { page: 'dashboard' as Page, icon: '🏠', label: 'Dashboard' },
-    { page: 'reports' as Page, icon: '📊', label: 'Ulat' },
+    { page: 'utang' as Page, icon: '📝', label: 'Utang' },
     { page: 'inventory' as Page, icon: '📦', label: 'Imbentaryo' },
+    { page: 'reports' as Page, icon: '📊', label: 'Ulat' },
     { page: 'settings' as Page, icon: '⚙️', label: 'Settings' },
   ]
 
@@ -19,7 +20,7 @@ export default function BottomNav({ current, onNavigate }: Props) {
         <button
           key={item.page}
           onClick={() => onNavigate(item.page)}
-          className="flex flex-col items-center gap-1 min-w-15"
+          className="flex flex-col items-center gap-1 min-w-12.5"
         >
           <span className="text-xl">{item.icon}</span>
           <span className={`text-[9px] font-bold uppercase tracking-wider ${

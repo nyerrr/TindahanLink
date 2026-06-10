@@ -1,1 +1,1 @@
-export type Page = 'dashboard' | 'inventory' | 'reports' | 'settings'
+export type Page = 'dashboard' | 'inventory' | 'reports' | 'settings' | 'utang'
