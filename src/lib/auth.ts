@@ -3,15 +3,21 @@ import { supabase } from './supabase'
 // Signs in an existing user with email + password
 // Throws an error if credentials are wrong
 export async function signIn(email: string, password: string, remember: boolean = true) {
+<<<<<<< HEAD
 
+=======
+>>>>>>> changes
   if (!remember) {
     await supabase.auth.signOut()
   }
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> changes
   const { data, error } = await supabase.auth.signInWithPassword({
     email,
-    password
+    password,
   })
   if (error) throw error
 

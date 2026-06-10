@@ -70,7 +70,7 @@ export default function BottomNav({ current, onNavigate }: Props) {
         <button
           key={page}
           onClick={() => onNavigate(page)}
-          className="flex flex-col items-center gap-1 min-w-12.5"
+          className="cursor-pointer flex flex-col items-center gap-1 min-w-12.5"
         >
           <Icon className={current === page ? 'text-[#0D3B2E]' : 'text-gray-300'} />
           <span className={`text-[9px] font-bold uppercase tracking-wider ${
