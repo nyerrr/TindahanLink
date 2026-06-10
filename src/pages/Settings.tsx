@@ -223,7 +223,7 @@ export default function Settings({ onNavigate, onLogout, userEmail }: Props) {
         <button
           onClick={handleLogout}
           disabled={loading}
-          className="w-full bg-red-50 border border-red-100 text-red-600 rounded-2xl py-4 font-bold text-sm active:scale-95 transition-all disabled:opacity-60"
+          className="w-full bg-red-500 border cursor-pointer border-red-100 text-gray-50 rounded-2xl py-4 font-bold text-sm active:scale-95 transition-all disabled:opacity-60"
         >
           {loading ? 'Naglo-logout...' : '🚪 Mag-logout'}
         </button>

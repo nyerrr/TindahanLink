@@ -337,7 +337,7 @@ export default function Dashboard({ onNavigate }: Props) {
               key={item.id}
               onClick={() => openSellModal(item)}
               disabled={item.stock <= 0}
-              className={`bg-white rounded-2xl border border-[#E8EDE8] p-3 flex flex-col items-center relative active:scale-95 transition-all ${
+              className={`cursor-pointer bg-white rounded-2xl border border-[#E8EDE8] p-3 flex flex-col items-center relative active:scale-95 transition-all ${
                 item.stock <= 0 ? 'opacity-40' : ''
               }`}
             >
@@ -368,7 +368,7 @@ export default function Dashboard({ onNavigate }: Props) {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 10 }}
               onClick={() => setVisibleCount(c => c + 6)}
-              className="w-full mt-3 bg-white border border-[#E8EDE8] rounded-2xl py-3.5 text-sm font-bold text-[#0D3B2E] active:scale-95 transition-transform"
+              className="cursor-pointer w-full mt-3 bg-white border border-[#E8EDE8] rounded-2xl py-3.5 text-sm font-bold text-[#0D3B2E] active:scale-95 transition-transform"
             >
               Tingnan pa ({totalFiltered - visibleCount} pa)
             </motion.button>

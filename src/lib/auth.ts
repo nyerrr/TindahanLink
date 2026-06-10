@@ -2,14 +2,20 @@ import { supabase } from './supabase'
 
 // Signs in an existing user with email + password
 // Throws an error if credentials are wrong
-export async function signIn(email: string, password: string) {
+export async function signIn(email: string, password: string, remember: boolean = true) {
+  if (!remember) {
+    await supabase.auth.signOut()
+  }
+
   const { data, error } = await supabase.auth.signInWithPassword({
     email,
-    password
+    password,
   })
   if (error) throw error
   return data
-}// Creates a new account
+}
+
+// Creates a new account
 // Throws an error if email already exists
 export async function signUp(email: string, password: string) {
   const { data, error } = await supabase.auth.signUp({

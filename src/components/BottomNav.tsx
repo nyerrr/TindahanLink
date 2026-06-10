@@ -118,7 +118,7 @@ export default function BottomNav({ current, onNavigate }: Props) {
       {/* Dashboard */}
       <button
         onClick={() => onNavigate('dashboard')}
-        className="flex flex-col items-center gap-1 min-w-12.5"
+        className="cursor-pointer flex flex-col items-center gap-1 min-w-12.5"
       >
         <HomeIcon className={current === 'dashboard' ? 'text-[#0D3B2E]' : 'text-gray-300'} />
         <span className={`text-[9px] font-bold uppercase tracking-wider ${
@@ -134,7 +134,7 @@ export default function BottomNav({ current, onNavigate }: Props) {
       {/* Utang */}
       <button
         onClick={() => onNavigate('utang')}
-        className="flex flex-col items-center gap-1 min-w-12.5"
+        className="cursor-pointer flex flex-col items-center gap-1 min-w-12.5"
       >
         <UtangIcon className={current === 'utang' ? 'text-[#0D3B2E]' : 'text-gray-300'} />
         <span className={`text-[9px] font-bold uppercase tracking-wider ${
@@ -150,7 +150,7 @@ export default function BottomNav({ current, onNavigate }: Props) {
       {/* Inventory */}
       <button
         onClick={() => onNavigate('inventory')}
-        className="flex flex-col items-center gap-1 min-w-12.5"
+        className="cursor-pointer flex flex-col items-center gap-1 min-w-12.5"
       >
         <InventoryIcon className={current === 'inventory' ? 'text-[#0D3B2E]' : 'text-gray-300'} />
         <span className={`text-[9px] font-bold uppercase tracking-wider ${
@@ -166,7 +166,7 @@ export default function BottomNav({ current, onNavigate }: Props) {
       {/* Reports */}
       <button
         onClick={() => onNavigate('reports')}
-        className="flex flex-col items-center gap-1 min-w-12.5"
+        className="cursor-pointer flex flex-col items-center gap-1 min-w-12.5"
       >
         <UlatIcon className={current === 'reports' ? 'text-[#0D3B2E]' : 'text-gray-300'} />
         <span className={`text-[9px] font-bold uppercase tracking-wider ${
@@ -182,7 +182,7 @@ export default function BottomNav({ current, onNavigate }: Props) {
       {/* Settings */}
       <button
         onClick={() => onNavigate('settings')}
-        className="flex flex-col items-center gap-1 min-w-12.5"
+        className="cursor-pointer flex flex-col items-center gap-1 min-w-12.5"
       >
         <SettingsIcon className={current === 'settings' ? 'text-[#0D3B2E]' : 'text-gray-300'} />
         <span className={`text-[9px] font-bold uppercase tracking-wider ${
