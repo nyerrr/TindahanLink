@@ -4,6 +4,7 @@ import BottomNav from '../components/BottomNav'
 import WeatherAlert from '../components/WeatherAlert'
 import type { Page } from '../types'
 import { useProfile } from '../context/ProfileContext'
+import { motion, AnimatePresence } from 'framer-motion'
 
 type Item = {
   id: string
@@ -37,6 +38,9 @@ export default function Dashboard({ onNavigate }: Props) {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [activeCategory, setActiveCategory] = useState('Lahat')
+  const [sellingItem, setSellingItem] = useState<Item | null>(null)
+  const [sellQty, setSellQty] = useState('1')
+  const [sellLoading, setSellLoading] = useState(false)
   const { profile } = useProfile()
 
   useEffect(() => {
@@ -69,17 +73,54 @@ export default function Dashboard({ onNavigate }: Props) {
     setSold(data.reduce((sum, s) => sum + s.quantity, 0))
   }
 
-  async function handleTap(item: Item) {
+  // Step 1: Open the quantity modal
+  function openSellModal(item: Item) {
     if (item.stock <= 0) return
-    await supabase.from('sales').insert({ item_id: item.id, quantity: 1, total: item.price })
-    await supabase.from('items').update({ stock: item.stock - 1 }).eq('id', item.id)
+    setSellingItem(item)
+    setSellQty('1') // default to 1
+  }
+
+  // Step 2: Actually record the sale
+  async function confirmSell() {
+    if (!sellingItem) return
+
+    const qty = Number(sellQty)
+
+    // Validate quantity
+    if (!qty || qty <= 0) return alert('Maglagay ng tamang bilang!')
+    if (qty > sellingItem.stock) return alert(`${sellingItem.name} ay ${sellingItem.stock} na lang natitira!`)
+
+    setSellLoading(true)
+
+    const total = qty * sellingItem.price
+
+    // Record the sale with the correct quantity and total
+    await supabase.from('sales').insert({
+      item_id: sellingItem.id,
+      quantity: qty,
+      total: total
+    })
+
+    // Update stock — subtract the full quantity at once
+    await supabase.from('items').update({
+      stock: sellingItem.stock - qty
+    }).eq('id', sellingItem.id)
+
+    // Update local state immediately — no need to refetch
+    const newStock = sellingItem.stock - qty
     setItems(items => items.map(i =>
-      i.id === item.id
-        ? { ...i, stock: i.stock - 1, low: i.stock - 1 <= i.low_threshold }
+      i.id === sellingItem.id
+        ? { ...i, stock: newStock, low: newStock <= i.low_threshold }
         : i
     ))
-    setSales(s => s + item.price)
-    setSold(s => s + 1)
+
+    // Update the sales counters
+    setSales(s => s + total)
+    setSold(s => s + qty)
+
+    // Close modal
+    setSellingItem(null)
+    setSellLoading(false)
   }
 
   // Filter by search + category
@@ -248,7 +289,7 @@ export default function Dashboard({ onNavigate }: Props) {
           ) : filteredItems.map(item => (
             <button
               key={item.id}
-              onClick={() => handleTap(item)}
+              onClick={() => openSellModal(item)}
               disabled={item.stock <= 0}
               className={`bg-white rounded-2xl border border-[#E8EDE8] p-3 flex flex-col items-center relative active:scale-95 transition-all ${
                 item.stock <= 0 ? 'opacity-40' : ''
@@ -274,7 +315,100 @@ export default function Dashboard({ onNavigate }: Props) {
         </div>
 
       </div>
+      {/* Sell Quantity Modal */}
+      <AnimatePresence>
+        {sellingItem && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/40 flex items-end z-50"
+            onClick={() => setSellingItem(null)}
+          >
+            <motion.div
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+              className="bg-white w-full rounded-t-3xl p-6 pb-10"
+              onClick={e => e.stopPropagation()}
+            >
+              {/* Handle bar */}
+              <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-5" />
 
+              {/* Item info */}
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-14 h-14 bg-[#F0F4F0] rounded-2xl flex items-center justify-center text-3xl shrink-0">
+                  {sellingItem.emoji}
+                </div>
+                <div>
+                  <p className="font-bold text-[#0D3B2E]">{sellingItem.name}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    ₱{sellingItem.price} bawat isa · {sellingItem.stock} natitira
+                  </p>
+                </div>
+              </div>
+
+              {/* Quantity selector */}
+              <div className="mb-2">
+                <label className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider mb-3 block">
+                  Ilang piraso ang nabenta?
+                </label>
+
+                {/* + and - buttons with input in the middle */}
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setSellQty(q => String(Math.max(1, Number(q) - 1)))}
+                    className="w-12 h-12 flex items-center justify-center text-xl font-bold text-[#0D3B2E] active:scale-95 transition-transform"
+                  >
+                    −
+                  </button>
+                  <input
+                    inputMode="numeric"
+                    value={sellQty}
+                    onChange={e => setSellQty(e.target.value)}
+                    className="flex-1 text-center text-2xl font-bold text-[#0D3B2E] bg-[#F0F4F0] rounded-2xl py-3 focus:outline-none focus:border-[#0D3B2E] border border-transparent"
+                  />
+                  <button
+                    onClick={() => setSellQty(q => String(Math.min(sellingItem.stock, Number(q) + 1)))}
+                    className="w-12 h-12  flex items-center justify-center text-xl font-bold text-[#0D3B2E] active:scale-95 transition-transform"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+
+              {/* Total preview */}
+              {/* Why show this? So Aling Nena can verify before confirming */}
+              <div className="p-3 mb-5 flex justify-between items-center">
+                <span className="text-sm text-gray-500 font-medium">Kabuuang halaga</span>
+                <span className="text-lg font-bold text-[#0D3B2E]">
+                  ₱{(Number(sellQty) * sellingItem.price).toLocaleString()}
+                </span>
+              </div>
+
+              {/* Action buttons */}
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setSellingItem(null)}
+                  className="flex-1 bg-[#F0F4F0] rounded-2xl py-3.5 text-sm font-semibold text-gray-500"
+                >
+                  Kanselahin
+                </button>
+                <motion.button
+                  whileTap={{ scale: 0.97 }}
+                  onClick={confirmSell}
+                  disabled={sellLoading}
+                  className="flex-1 bg-[#0D3B2E] text-white rounded-2xl py-3.5 text-sm font-bold disabled:opacity-60"
+                >
+                  {sellLoading ? 'Nagse-save...' : 'I-record ang Benta ✓'}
+                </motion.button>
+              </div>
+
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
       <BottomNav current="dashboard" onNavigate={onNavigate} />
     </div>
   )
