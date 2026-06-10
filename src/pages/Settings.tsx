@@ -4,6 +4,7 @@ import { signOut } from '../lib/auth'
 import { useProfile } from '../context/ProfileContext'
 import BottomNav from '../components/BottomNav'
 import type { Page } from '../types'
+import { requestNotificationPermission } from '../lib/pushNotifications'
 
 type Props = {
   onNavigate: (page: Page) => void
@@ -12,6 +13,7 @@ type Props = {
 }
 
 export default function Settings({ onNavigate, onLogout, userEmail }: Props) {
+  const [notifPermission, setNotifPermission] = useState(Notification.permission)
   const { profile, updateProfile } = useProfile()
   const [loading, setLoading] = useState(false)
   const [editing, setEditing] = useState(false)
@@ -21,6 +23,11 @@ export default function Settings({ onNavigate, onLogout, userEmail }: Props) {
     location: profile.location
   })
   const [success, setSuccess] = useState(false)
+
+  async function handleEnableNotifications() {
+    const granted = await requestNotificationPermission()
+    setNotifPermission(granted ? 'granted' : 'denied')
+  }
 
   async function handleLogout() {
     const confirm = window.confirm('Sigurado ka bang mag-lo-logout?')
@@ -174,6 +181,42 @@ export default function Settings({ onNavigate, onLogout, userEmail }: Props) {
               </span>
             </div>
           </div>
+        </div>
+
+        {/* Notifications Card */}
+        <div className="bg-white rounded-2xl border border-[#E8EDE8] p-4">
+          <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-widest mb-3">
+            Mga Notipikasyon
+          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-bold text-[#0D3B2E]">Low Stock Alerts</p>
+              <p className="text-xs text-gray-400 mt-0.5">
+                Abisuhan kung mababa na ang stock
+              </p>
+            </div>
+            {notifPermission === 'granted' ? (
+              <span className="text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded-full">
+                Bukas ✅
+              </span>
+            ) : notifPermission === 'denied' ? (
+              <span className="text-xs font-bold text-red-600 bg-red-50 px-2 py-1 rounded-full">
+                Blocked ❌
+              </span>
+            ) : (
+              <button
+                onClick={handleEnableNotifications}
+                className="text-xs font-bold text-white bg-[#0D3B2E] px-3 py-1.5 rounded-full"
+              >
+                I-enable
+              </button>
+            )}
+          </div>
+          {notifPermission === 'denied' && (
+            <p className="text-xs text-gray-400 mt-2 leading-relaxed">
+              I-allow ang notifications sa inyong browser settings para matanggap ang mga alerto.
+            </p>
+          )}
         </div>
 
         {/* Logout */}

@@ -5,6 +5,9 @@ import WeatherAlert from '../components/WeatherAlert'
 import type { Page } from '../types'
 import { useProfile } from '../context/ProfileContext'
 import { motion, AnimatePresence } from 'framer-motion'
+import NotificationPanel from '../components/NotificationPanel'
+import { buildNotifications } from '../lib/notifications'
+import { checkAndNotifyLowStock } from '../lib/pushNotifications'
 
 type Item = {
   id: string
@@ -32,6 +35,7 @@ const CATEGORY_EMOJI: Record<string, string> = {
 }
 
 export default function Dashboard({ onNavigate }: Props) {
+  const [notifOpen, setNotifOpen] = useState(false)
   const [items, setItems] = useState<Item[]>([])
   const [sales, setSales] = useState(0)
   const [sold, setSold] = useState(0)
@@ -41,6 +45,7 @@ export default function Dashboard({ onNavigate }: Props) {
   const [sellingItem, setSellingItem] = useState<Item | null>(null)
   const [sellQty, setSellQty] = useState('1')
   const [sellLoading, setSellLoading] = useState(false)
+  const [visibleCount, setVisibleCount] = useState(6)
   const { profile } = useProfile()
 
   useEffect(() => {
@@ -54,11 +59,17 @@ export default function Dashboard({ onNavigate }: Props) {
       .select('*')
       .order('name')
     if (error) return console.error(error)
-    setItems(data.map(item => ({
+
+    const mappedItems = data.map(item => ({
       ...item,
       low: item.stock <= item.low_threshold
-    })))
+    }))
+    setItems(mappedItems)
     setLoading(false)
+
+    // Check stock levels and notify if needed
+    // Why after setItems? So UI updates first, then notification
+    await checkAndNotifyLowStock(mappedItems)
   }
 
   async function fetchTodaySales() {
@@ -108,11 +119,15 @@ export default function Dashboard({ onNavigate }: Props) {
 
     // Update local state immediately — no need to refetch
     const newStock = sellingItem.stock - qty
-    setItems(items => items.map(i =>
+    const updatedItems = items.map(i =>
       i.id === sellingItem.id
         ? { ...i, stock: newStock, low: newStock <= i.low_threshold }
         : i
-    ))
+    )
+    setItems(updatedItems)
+
+    // Notify if stock just went low
+    await checkAndNotifyLowStock(updatedItems)
 
     // Update the sales counters
     setSales(s => s + total)
@@ -129,6 +144,17 @@ export default function Dashboard({ onNavigate }: Props) {
     const matchesCategory = activeCategory === 'Lahat' || item.category === activeCategory
     return matchesSearch && matchesCategory
   })
+
+  // Pagination
+  const totalFiltered = filteredItems.length
+  const visibleItems = filteredItems.slice(0, visibleCount)
+  const hasMore = visibleCount < totalFiltered
+
+  // Notifications
+  const notifications = buildNotifications(items)
+  const urgentCount = notifications.filter(n => n.urgent).length
+
+  
 
   // Only show categories that have items
   const usedCategories = CATEGORIES.filter(cat =>
@@ -162,8 +188,22 @@ export default function Dashboard({ onNavigate }: Props) {
               Open for business
             </span>
           </div>
-          <button className="w-8 h-8 rounded-full bg-[#975c0a] flex items-center justify-center text-white/60 text-sm">
+          {/* Bell button with badge */}
+          {/* Why relative + absolute? To position the badge on top of the button */}
+          <button
+            onClick={() => setNotifOpen(true)}
+            className="relative w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white/60 text-sm"
+          >
             🔔
+            {urgentCount > 0 && (
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center"
+              >
+                <span className="text-white text-[8px] font-bold">{urgentCount}</span>
+              </motion.div>
+            )}
           </button>
         </div>
 
@@ -208,7 +248,10 @@ export default function Dashboard({ onNavigate }: Props) {
           <input
             type="text"
             value={search}
-            onChange={e => setSearch(e.target.value)}
+            onChange={e => {
+            setSearch(e.target.value)
+            setVisibleCount(6)
+          }}
             placeholder="Hanapin ang produkto..."
             className="w-full bg-white border border-[#E8EDE8] rounded-2xl py-3 pl-10 pr-4 text-sm font-medium text-[#0D3B2E] placeholder:text-gray-300 focus:outline-none focus:border-[#0D3B2E] transition-colors"
           />
@@ -230,7 +273,10 @@ export default function Dashboard({ onNavigate }: Props) {
           {usedCategories.map(cat => (
             <button
               key={cat}
-              onClick={() => setActiveCategory(cat)}
+              onClick={() => {
+                setActiveCategory(cat)
+                setVisibleCount(6)
+              }}
               className={`shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${
                 activeCategory === cat
                   ? 'bg-[#0D3B2E] text-white'
@@ -254,8 +300,8 @@ export default function Dashboard({ onNavigate }: Props) {
         <div className="flex justify-between items-center mt-4 mb-3">
           <p className="text-[#0D3B2E] text-sm font-bold tracking-tight">
             {activeCategory === 'Lahat' ? 'Lahat ng Produkto' : activeCategory}
-            <span className="text-gray-300 font-medium ml-1.5">
-              ({filteredItems.length})
+            <span className="text-gray-600 font-medium ml-1.5">
+              ({visibleCount < totalFiltered ? `${visibleCount} sa ${totalFiltered}` : totalFiltered})
             </span>
           </p>
           <button
@@ -286,7 +332,7 @@ export default function Dashboard({ onNavigate }: Props) {
                 Tingnan lahat
               </button>
             </div>
-          ) : filteredItems.map(item => (
+          ) : visibleItems.map(item => (
             <button
               key={item.id}
               onClick={() => openSellModal(item)}
@@ -313,6 +359,31 @@ export default function Dashboard({ onNavigate }: Props) {
             </button>
           ))}
         </div>
+
+        {/* Show more button */}
+        <AnimatePresence>
+          {hasMore && (
+            <motion.button
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 10 }}
+              onClick={() => setVisibleCount(c => c + 6)}
+              className="w-full mt-3 bg-white border border-[#E8EDE8] rounded-2xl py-3.5 text-sm font-bold text-[#0D3B2E] active:scale-95 transition-transform"
+            >
+              Tingnan pa ({totalFiltered - visibleCount} pa)
+            </motion.button>
+          )}
+        </AnimatePresence>
+
+        {!hasMore && totalFiltered > 6 && (
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-center text-xs text-black font-medium mt-3 pb-2"
+          >
+            Lahat ng {totalFiltered} produkto ay nakita na ✅
+          </motion.p>
+        )}
 
       </div>
       {/* Sell Quantity Modal */}
@@ -410,6 +481,12 @@ export default function Dashboard({ onNavigate }: Props) {
         )}
       </AnimatePresence>
       <BottomNav current="dashboard" onNavigate={onNavigate} />
+      <NotificationPanel
+        notifications={notifications}
+        isOpen={notifOpen}
+        onClose={() => setNotifOpen(false)}
+        onNavigate={onNavigate}
+      />
     </div>
   )
 }
